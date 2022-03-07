@@ -1,15 +1,24 @@
 {
-  "name": "ddz",
+  "name": "make-a-multiplayer-card-game",
   "version": "1.0.0",
   "description": "",
-  "main": "server.js",
+  "main": "index.js",
   "scripts": {
-    "start": "node server.js"
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lizhiyu-me/Make-a-multiplayer-card-game.git"
+  },
+  "keywords": [],
   "author": "",
   "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/lizhiyu-me/Make-a-multiplayer-card-game/issues"
+  },
+  "homepage": "https://github.com/lizhiyu-me/Make-a-multiplayer-card-game#readme",
   "dependencies": {
-    "eslint": "^7.5.0",
+    "google-protobuf": "^3.19.4",
     "readline-sync": "^1.4.10"
   }
 }

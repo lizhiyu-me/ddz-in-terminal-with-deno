@@ -1,10 +1,6 @@
-# 斗地主 BattleWithLandlord
-  ### 中国最受欢迎的纸牌游戏 most popular card game in China
-本项目用node实现了简单的命令行斗地主。（play doudizhu in command line, make with nodejs.）
+# Make-a-multiplayer-card-game
+## This repo is for a series of blogs on [my blog site](https://lizhiyu.me)
+This main branch is update to the latest progress and will be the complete project.
 
-- 1. `cd CMD_doudizhu` 
-- 2. `npm intall`
-- 3. `node server.js`
-- 4. `node client.js`
+You can checkout the tag to find the specific episode demo.
 
-跟着命令行提示走就对了。（then follow the command line tip.）

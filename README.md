@@ -1,4 +1,4 @@
-# 摸鱼斗地主 FIsh Poker
+# 摸鱼斗地主 Fish Poker
 
 ### 快速开始 Quick start
 运行 <code>bin</code>目录下**myddz-server**创建房间

@@ -1,6 +1,12 @@
-# Make-a-multiplayer-card-game
-## This repo is for a series of blogs on [my blog site](https://lizhiyu.me)
-This main branch is update to the latest progress and will be the complete project.
+# 摸鱼斗地主 FIsh Poker
 
-You can checkout the tag to find the specific episode demo.
+### 快速开始 Quick start
+运行 <code>bin</code>目录下**myddz-server**创建房间
+run **myddz-server** in dir <code>bin</code> to host a room.
+运行<code>bin</code> 目录下**myddz-client**加入房间
+run **myddz-client** in dir <code>bin</code> to join a room.
+
+> 支持2人,3人模式(创建房间时进行选择)
+> support 2 or 3 player, whihch could be chosen when host a room.
+
 

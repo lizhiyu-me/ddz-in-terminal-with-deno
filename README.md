@@ -1,2 +1,2 @@
 ### todo
-- generate types according to protobuf
+- generate types according to protobuf (pbkit and `pb gen ts`)

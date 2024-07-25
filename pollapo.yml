@@ -1,0 +1,5 @@
+deps:
+  - lizhiyu-me/ddz-proto@main
+root:
+  lock:
+    lizhiyu-me/ddz-proto@main: 9e240b7aa63377d11cbffc79123515561df965a8

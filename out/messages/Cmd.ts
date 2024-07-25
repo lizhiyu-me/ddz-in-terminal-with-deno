@@ -1,0 +1,48 @@
+// @ts-nocheck
+export declare namespace $ {
+  export type Cmd =
+    | "NONE"
+    | "READY_C2S"
+    | "DEALCARDS_S2C"
+    | "COMPETEFORLANDLORDROLE_C2S"
+    | "COMPETEFORLANDLORDROLE_S2C"
+    | "PLAYTURN_S2C"
+    | "PLAYCARDS_C2S"
+    | "PLAYCARDS_S2C"
+    | "ILLEGALCARDS_S2C"
+    | "GAMEEND_S2C"
+    | "GAMESTART_S2C"
+    | "BROADCAST_MSG_S2C";
+}
+
+export type Type = $.Cmd;
+
+export const num2name = {
+  0: "NONE",
+  1: "READY_C2S",
+  2: "DEALCARDS_S2C",
+  3: "COMPETEFORLANDLORDROLE_C2S",
+  4: "COMPETEFORLANDLORDROLE_S2C",
+  5: "PLAYTURN_S2C",
+  6: "PLAYCARDS_C2S",
+  7: "PLAYCARDS_S2C",
+  8: "ILLEGALCARDS_S2C",
+  9: "GAMEEND_S2C",
+  10: "GAMESTART_S2C",
+  11: "BROADCAST_MSG_S2C",
+} as const;
+
+export const name2num = {
+  NONE: 0,
+  READY_C2S: 1,
+  DEALCARDS_S2C: 2,
+  COMPETEFORLANDLORDROLE_C2S: 3,
+  COMPETEFORLANDLORDROLE_S2C: 4,
+  PLAYTURN_S2C: 5,
+  PLAYCARDS_C2S: 6,
+  PLAYCARDS_S2C: 7,
+  ILLEGALCARDS_S2C: 8,
+  GAMEEND_S2C: 9,
+  GAMESTART_S2C: 10,
+  BROADCAST_MSG_S2C: 11,
+} as const;

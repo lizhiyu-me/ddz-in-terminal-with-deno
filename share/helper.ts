@@ -1,8 +1,14 @@
+interface CardNameNumberDictionary {
+    [key: string]: number;
+}
+interface CardNumberNameDictionary {
+    [key: number]: string;
+}
 /**
  * * rJkr for redJoker
  * * bJkr for blackJoker
  */
-var cardNameNumberDic = {
+const cardNameNumberDic:CardNameNumberDictionary = {
     'rJkr': 0x0f,
     'bJkr': 0x0e,
     '2': 0x02,
@@ -29,7 +35,7 @@ var cardNameNumberDic = {
  * * rJkr for redJoker
  * * bJkr for blackJoker
  */
-var cardNumberNameDic = {
+const cardNumberNameDic:CardNumberNameDictionary = {
     0x0f: 'rJkr',
     0x0e: 'bJkr',
     0x02: '2',
@@ -46,27 +52,27 @@ var cardNumberNameDic = {
     0x04: '4',
     0x03: '3'
 }
-function getCardReadableName(cardNumber) {
-    let _cardNumber = Number(cardNumber);
-    let _value = _cardNumber % 0x10;
+function getCardReadableName(cardNumber: number): string {
+    const _cardNumber = Number(cardNumber);
+    const _value = _cardNumber % 0x10;
     return cardNumberNameDic[_value];
 }
 
-function convert2ReadableNames(cardsArr) {
-    let _res = [];
+function convert2ReadableNames(cardsArr: number[]): string[] {
+    const _res = [];
     for (let i = 0, len = cardsArr.length; i < len; i++) {
-        let _cardNumber = cardsArr[i];
+        const _cardNumber = cardsArr[i];
         _res.push(getCardReadableName(_cardNumber));
     }
     return _res;
 }
-function convert2CardNumbers(cardNames) {
-    let _res = [];
+function convert2CardNumbers(cardNames: string[]): number[] {
+    const _res = [];
     for (let i = 0, len = cardNames.length; i < len; i++) {
-        let _cardName = cardNames[i];
+        const _cardName = cardNames[i];
         _res.push(cardNameNumberDic[_cardName]);
     }
     return _res;
 }
 
-module.exports = { cardNameNumberDic, cardNumberNameDic, getCardReadableName, convert2ReadableNames, convert2CardNumbers }
+export { cardNameNumberDic, cardNumberNameDic, getCardReadableName, convert2ReadableNames, convert2CardNumbers }

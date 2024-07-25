@@ -1,4 +1,4 @@
-var RuleChecker = /** @class */ (function () {
+export const RuleChecker = /** @class */ (function () {
     function RuleChecker() {
     }
     RuleChecker.getCardValue = function (cardSerialNo) {
@@ -1560,7 +1560,7 @@ var RuleChecker = /** @class */ (function () {
     };
     return RuleChecker;
 }());
-var CardType = /** @class */ (function () {
+export const CardType = /** @class */ (function () {
     function CardType() {
     }
     CardType.CT_ERROR = 0; 
@@ -1589,5 +1589,3 @@ var CardType = /** @class */ (function () {
     ];
     return CardType;
 }());
-
-module.exports = {RuleChecker,CardType}

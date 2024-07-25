@@ -11,7 +11,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-var jspb = require('google-protobuf');
+import * as jspb from 'https://deno.land/x/deno_google_protobuf/google-protobuf.js'
 var goog = jspb;
 var global = (function() {
   if (this) { return this; }
@@ -2210,4 +2210,16 @@ proto.Cmd = {
   BROADCAST_MSG_S2C: 11
 };
 
-goog.object.extend(exports, proto);
+export const BroadCastMsg_S2C = proto.BroadCastMsg_S2C;
+export const Cmd = proto.Cmd;
+export const CompeteForLandLordRole_C2S = proto.CompeteForLandLordRole_C2S;
+export const CompeteForLandLordRole_S2C = proto.CompeteForLandLordRole_S2C;
+export const DealCards_S2C = proto.DealCards_S2C;
+export const GameEnd_S2C = proto.GameEnd_S2C;
+export const GameStart_S2C = proto.GameStart_S2C;
+export const IllegalCards_S2C = proto.IllegalCards_S2C;
+export const MainMessage = proto.MainMessage;
+export const PlayCards_C2S = proto.PlayCards_C2S;
+export const PlayCards_S2C = proto.PlayCards_S2C;
+export const PlayTurn_S2C = proto.PlayTurn_S2C;
+export const Ready_C2S = proto.Ready_C2S;

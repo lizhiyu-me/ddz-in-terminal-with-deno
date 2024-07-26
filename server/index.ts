@@ -2,7 +2,7 @@ import { readline } from "https://deno.land/x/readline_sync@0.0.2/mod.ts";
 import { WebSocketClient, WebSocketServer } from "https://deno.land/x/websocket@v0.1.4/mod.ts";
 import { RuleChecker } from "../share/rule-checker.js";
 // import * as card_game_pb from "../share/proto/out/card-game_pb.js";
-import { messages as msgType } from "../out/index.ts";
+import { messages as msgType } from "../share/proto/out/index.ts";
 
 
 class GameServer {
@@ -13,11 +13,6 @@ class GameServer {
         0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x3A, 0x3B, 0x3C, 0x3D,	//spade A - K
         0x4E, 0x4F, //bJkr,rJkr
     ];
-
-    a:msgType.DealCards_S2C = {
-        cards:[],
-        seatNumber:1
-    }
     
     private playerIDArr: number[] = [];
     private socketDic: Record<number, Deno.Conn> = {};

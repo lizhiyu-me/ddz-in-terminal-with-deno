@@ -1,9 +1,25 @@
 import { readline } from "https://deno.land/x/readline_sync@0.0.2/mod.ts";
 import { WebSocketClient, WebSocketServer } from "https://deno.land/x/websocket@v0.1.4/mod.ts";
-import { RuleChecker } from "../share/rule-checker.js";
-// import * as card_game_pb from "../share/proto/out/card-game_pb.js";
-import { messages as msgType } from "../share/proto/out/index.ts";
 
+import { RuleChecker } from "../share/rule-checker.js";
+
+import { messages as protobufMsgType } from "../share/proto/out/index.ts";
+import { name2num as protoMsgCmd } from "../share/proto/out/messages/Cmd.ts";
+import { num2name as protoMsgName } from "../share/proto/out/messages/Cmd.ts";
+
+import * as MainMessage from "../share/proto/out/messages/MainMessage.ts";
+import * as DealCards_S2C from "../share/proto/out/messages/DealCards_S2C.ts";
+import * as CompeteForLandLordRole_C2S from "../share/proto/out/messages/CompeteForLandLordRole_C2S.ts";
+import * as CompeteForLandLordRole_S2C from "../share/proto/out/messages/CompeteForLandLordRole_S2C.ts";
+import * as PlayCards_C2S from "../share/proto/out/messages/PlayCards_C2S.ts";
+import * as PlayCards_S2C from "../share/proto/out/messages/PlayCards_S2C.ts";
+import * as IllegalCards_S2C from "../share/proto/out/messages/IllegalCards_S2C.ts";
+import * as GameEnd_S2C from "../share/proto/out/messages/GameEnd_S2C.ts";
+import * as PlayTurn_S2C from "../share/proto/out/messages/PlayTurn_S2C.ts";
+import * as GameStart_S2C from "../share/proto/out/messages/GameStart_S2C.ts";
+import * as BroadCastMsg_S2C from "../share/proto/out/messages/BroadCastMsg_S2C.ts";
+
+export type CMDKEY = keyof typeof protoMsgName;
 
 class GameServer {
     static POKER_VALUES: number[] = [
@@ -15,7 +31,7 @@ class GameServer {
     ];
     
     private playerIDArr: number[] = [];
-    private socketDic: Record<number, Deno.Conn> = {};
+    private socketDic: Record<number, WebSocketClient> = {};
     private port: number = 8080;
     private playerCount: number = 2;
 
@@ -23,12 +39,12 @@ class GameServer {
     lordCardsCount = 3;
     readyPlayerCount = 0;
 
-    private preCardsArr: any[] = [];
+    private preCardsArr: number[] = [];
     private preCardsType: number = -1;
     private prePlayerSeat: number = -1;
     private isTrickEnd: boolean = true;
     private mIsGaming: boolean = false;
-    private playerCardsDic: { [key: number]: any[] } = {};
+    private playerCardsDic: { [key: number]: number[] } = {};
     private calledCompeteLordScoreArr: number[] = [];
     private maxCalledLordScore: number = 0;
     private lordRoleSeat: number = 0;
@@ -44,7 +60,9 @@ class GameServer {
         wss.on("connection", (socket: WebSocketClient) => {
             console.log("CONNECTED");
             const { id, seat } = this.generatePlayerIDAndSeatNumber();
+            //@ts-ignore:
             socket.id = id;
+            //@ts-ignore:
             socket.seat = seat;
             this.socketDic[id] = socket;
             this.addSocketListener(socket);
@@ -65,31 +83,32 @@ class GameServer {
 
     private addSocketListener(socket: WebSocketClient) {
         socket.on("message", (e) => {
-            let _playerID = socket.id;
+            //@ts-ignore:
+            const _playerID = socket.id;
             this.decodeData(e, _playerID);
         });
     }
 
     private decodeData(buffer: Uint8Array, playerID: number) {
         // let _mainMsg = card_game_pb.MainMessage.deserializeBinary(buffer);
-        let _mainMsg = messages.MainMessage
-        let _cmd = _mainMsg.getCmdId();
-        let _bytesData = _mainMsg.getData();
+        const _mainMsg = MainMessage.decodeBinary(buffer);
+        const _cmd = _mainMsg.cmdId;
+        const _bytesData = _mainMsg.data;
         let _data;
         switch (_cmd) {
-            case card_game_pb.Cmd.READY_C2S:
-                _data = card_game_pb.Ready_C2S.deserializeBinary(_bytesData);
-                _data = { seatNumber: _data.getSeatNumber() };
-                this.ready_C2S(_data);
+            case protoMsgCmd.READY_C2S:
+                // _data = Ready_C2S.decodeBinary(_bytesData);
+                // _data = { seatNumber: _data.seatNumber };
+                this.ready_C2S();
                 break;
-            case card_game_pb.Cmd.PLAYCARDS_C2S:
-                _data = card_game_pb.PlayCards_C2S.deserializeBinary(_bytesData);
-                _data = { cards: _data.getCardsList(), seatNumber: _data.getSeatNumber() };
+            case protoMsgCmd.PLAYCARDS_C2S:
+                _data = PlayCards_C2S.decodeBinary(_bytesData);
+                _data = { cards: _data.cards, seatNumber: _data.seatNumber };
                 this.playCards_C2S(playerID, _data);
                 break;
-            case card_game_pb.Cmd.COMPETEFORLANDLORDROLE_C2S:
-                _data = card_game_pb.CompeteForLandLordRole_C2S.deserializeBinary(_bytesData);
-                _data = { score: _data.getScore(), seatNumber: _data.getSeatNumber() };
+            case protoMsgCmd.COMPETEFORLANDLORDROLE_C2S:
+                _data = CompeteForLandLordRole_C2S.decodeBinary(_bytesData);
+                _data = { score: _data.score, seatNumber: _data.seatNumber };
                 this.competeForLandLordRole_C2S(playerID, _data);
                 break;
             default:
@@ -97,67 +116,76 @@ class GameServer {
         }
     }
 
-    private encodeData(cmd: card_game_pb.Cmd, data: any): Uint8Array | null {
-        let _cmd = cmd;
+    private encodeData(cmd: number, data:object|null): Uint8Array | null {
+        const _cmd = cmd;
         let _proto_struct_obj;
+        let _data;
         switch (_cmd) {
-            case card_game_pb.Cmd.DEALCARDS_S2C:
-                _proto_struct_obj = new card_game_pb.DealCards_S2C();
-                _proto_struct_obj.setCardsList(data.cards);
-                _proto_struct_obj.setSeatNumber(data.seatNumber);
+            case protoMsgCmd.DEALCARDS_S2C:
+                _proto_struct_obj = DealCards_S2C.getDefaultValue();
+                _proto_struct_obj.cards = (data! as protobufMsgType.DealCards_S2C).cards;
+                _proto_struct_obj.seatNumber = (data! as protobufMsgType.DealCards_S2C).seatNumber;
+                _data = DealCards_S2C.encodeBinary(_proto_struct_obj);
                 break;
-            case card_game_pb.Cmd.PLAYCARDS_S2C:
-                _proto_struct_obj = new card_game_pb.PlayCards_S2C();
-                _proto_struct_obj.setCardsList(data.cards);
-                _proto_struct_obj.setSeatNumber(data.seatNumber);
+            case protoMsgCmd.PLAYCARDS_S2C:
+                _proto_struct_obj = PlayCards_S2C.getDefaultValue();
+                _proto_struct_obj.cards = (data! as protobufMsgType.PlayCards_S2C).cards;
+                _proto_struct_obj.seatNumber = (data! as protobufMsgType.PlayCards_S2C).seatNumber;
+                _data = PlayCards_S2C.encodeBinary(_proto_struct_obj);
                 break;
-            case card_game_pb.Cmd.ILLEGALCARDS_S2C:
-                _proto_struct_obj = new card_game_pb.IllegalCards_S2C();
-                _proto_struct_obj.setSeatNumber(data.seatNumber);
+            case protoMsgCmd.ILLEGALCARDS_S2C:
+                _proto_struct_obj = IllegalCards_S2C.getDefaultValue();
+                _proto_struct_obj.seatNumber = (data! as protobufMsgType.IllegalCards_S2C).seatNumber;
+                _data = IllegalCards_S2C.encodeBinary(_proto_struct_obj);
                 break;
-            case card_game_pb.Cmd.GAMEEND_S2C:
-                _proto_struct_obj = new card_game_pb.GameEnd_S2C();
-                _proto_struct_obj.setSeatNumber(data.seatNumber);
+            case protoMsgCmd.GAMEEND_S2C:
+                _proto_struct_obj = GameEnd_S2C.getDefaultValue();
+                _proto_struct_obj.seatNumber = (data! as protobufMsgType.GameEnd_S2C).seatNumber;
+                _data = GameEnd_S2C.encodeBinary(_proto_struct_obj);
                 break;
-            case card_game_pb.Cmd.PLAYTURN_S2C:
-                _proto_struct_obj = new card_game_pb.PlayTurn_S2C();
-                _proto_struct_obj.setHandCardsList(data.handCards);
-                _proto_struct_obj.setSeatNumber(data.seatNumber);
+            case protoMsgCmd.PLAYTURN_S2C:
+                _proto_struct_obj = PlayTurn_S2C.getDefaultValue();
+                _proto_struct_obj.handCards = (data! as protobufMsgType.PlayTurn_S2C).handCards;
+                _proto_struct_obj.seatNumber = (data! as protobufMsgType.PlayTurn_S2C).seatNumber;
+                _data = PlayTurn_S2C.encodeBinary(_proto_struct_obj);
                 break;
-            case card_game_pb.Cmd.GAMESTART_S2C:
-                _proto_struct_obj = new card_game_pb.GameStart_S2C();
-                _proto_struct_obj.setPlayerId(data.playerID);
-                _proto_struct_obj.setSeatNumber(data.seatNumber);
+            case protoMsgCmd.GAMESTART_S2C:
+                _proto_struct_obj = GameStart_S2C.getDefaultValue();
+                _proto_struct_obj.playerId = (data! as protobufMsgType.GameStart_S2C).playerId;
+                _proto_struct_obj.seatNumber = (data! as protobufMsgType.GameStart_S2C).seatNumber;
+                _data = GameStart_S2C.encodeBinary(_proto_struct_obj);
                 break;
-            case card_game_pb.Cmd.COMPETEFORLANDLORDROLE_S2C:
-                _proto_struct_obj = new card_game_pb.CompeteForLandLordRole_S2C();
-                _proto_struct_obj.setCurMaxScore(data.curMaxScore);
+            case protoMsgCmd.COMPETEFORLANDLORDROLE_S2C:
+                _proto_struct_obj = CompeteForLandLordRole_S2C.getDefaultValue();
+                _proto_struct_obj.curMaxScore = (data! as protobufMsgType.CompeteForLandLordRole_S2C).curMaxScore;
+                _data = CompeteForLandLordRole_S2C.encodeBinary(_proto_struct_obj);
                 break;
-            case card_game_pb.Cmd.BROADCAST_MSG_S2C:
-                _proto_struct_obj = new card_game_pb.BroadCastMsg_S2C();
-                _proto_struct_obj.setMsg(data.msg);
+            case protoMsgCmd.BROADCAST_MSG_S2C:
+                _proto_struct_obj = BroadCastMsg_S2C.getDefaultValue();
+                _proto_struct_obj.msg = (data! as protobufMsgType.BroadCastMsg_S2C).msg;
+                _data = BroadCastMsg_S2C.encodeBinary(_proto_struct_obj);
                 break;
             default:
                 console.log("no message matched.")
         }
-        if (_proto_struct_obj) {
-            let _mainMsg = new card_game_pb.MainMessage();
-            _mainMsg.setCmdId(cmd);
-            let _data = _proto_struct_obj.serializeBinary();
-            _mainMsg.setData(_data);
-            return _mainMsg.serializeBinary();
+        if (_data) {
+            const _mainMsg = MainMessage.getDefaultValue();
+            _mainMsg.cmdId = cmd;
+            _mainMsg.data = _data;
+            const _completeData = MainMessage.encodeBinary(_mainMsg);
+            return _completeData;
         }
         return null;
     }
 
-    private send(playerID: number, cmd: card_game_pb.Cmd, data: any) {
-        console.log("send msg cmd:", cmd);
+    private send(playerID: number, cmd: CMDKEY, data: object | null) {
         if (!this.mIsGaming) return;
+        console.log("send msg:", protoMsgName[cmd]);
         const _dataBuffer = this.encodeData(cmd, data);
         if (_dataBuffer) this.socketDic[playerID].send(_dataBuffer);
     }
 
-    private broadcast(cmd: card_game_pb.Cmd, data: any) {
+    private broadcast(cmd: number, data: object | null) {
         if (!this.mIsGaming) return;
         const _dataBuffer = this.encodeData(cmd, data);
         if (_dataBuffer) {
@@ -168,30 +196,32 @@ class GameServer {
     }
 
     dealCards_S2C() {
-        let _pokerPool = this.shuffleArray(GameServer.POKER_VALUES.slice());
+        const _pokerPool = this.shuffleArray(GameServer.POKER_VALUES.slice());
         for (let i = 0; i < this.playerCount; i++) {
             this.playerCardsDic[i] = _pokerPool.slice(i * this.initialCardCount, (i + 1) * this.initialCardCount);
         }
-        let _lordCards = _pokerPool.slice(-this.lordCardsCount);
+        const _lordCards = _pokerPool.slice(-this.lordCardsCount);
         this.playerCardsDic[this.lordRoleSeat] = this.playerCardsDic[this.lordRoleSeat].concat(_lordCards);
 
         let _keyArr = Object.keys(this.playerCardsDic);
         for (let i = 0; i < _keyArr.length; i++) {
-            const _originCards = this.playerCardsDic[_keyArr[i]];
-            this.playerCardsDic[_keyArr[i]] = _originCards.map(card => card % 0x10);
+            const _originCards = this.playerCardsDic[+_keyArr[i]];
+            this.playerCardsDic[+_keyArr[i]] = _originCards.map(card => card % 0x10);
         }
 
         let _countIdx = 0;
         _keyArr = Object.keys(this.socketDic);
         for (let i = 0; i < _keyArr.length; i++) {
-            let _socket = this.socketDic[_keyArr[i]];
-            let _playerID = _socket.id;
-            let _seatNumber = _socket.seat;
-            let data = {
+            const _socket = this.socketDic[+_keyArr[i]];
+            //@ts-ignore:
+            const _playerID = _socket.id;
+            //@ts-ignore:
+            const _seatNumber = _socket.seat;
+            const data = {
                 seatNumber: _seatNumber,
                 cards: this.playerCardsDic[_countIdx++]
             }
-            this.send(_playerID, card_game_pb.Cmd.DEALCARDS_S2C, data);
+            this.send(_playerID, protoMsgCmd.DEALCARDS_S2C, data);
         }
     }
 
@@ -201,16 +231,16 @@ class GameServer {
             this.resetGameRoundData();
             this.mIsGaming = true;
             this.roundStart();
-            let _firstCompeteLordPlayerSeatNumber = Math.floor(Math.random() * this.playerCount);
-            let _playerID = this.getPlayerIDBySeatNumber(_firstCompeteLordPlayerSeatNumber);
-            this.send(_playerID, card_game_pb.Cmd.COMPETEFORLANDLORDROLE_S2C, { seatNumber: _firstCompeteLordPlayerSeatNumber, curMaxScore: this.maxCalledLordScore });
+            const _firstCompeteLordPlayerSeatNumber = Math.floor(Math.random() * this.playerCount);
+            const _playerID = this.getPlayerIDBySeatNumber(_firstCompeteLordPlayerSeatNumber);
+            if (_playerID) this.send(_playerID, protoMsgCmd.COMPETEFORLANDLORDROLE_S2C, { seatNumber: _firstCompeteLordPlayerSeatNumber, curMaxScore: this.maxCalledLordScore });
         }
     }
 
-    competeForLandLordRole_C2S(playerID, data) {
+    competeForLandLordRole_C2S(playerID: number, data: object|null) {
         console.log("competeForLandLordRole_C2S>",data);
-        let _score = data.score;
-        let _seatNumber = data.seatNumber;
+        const _score = (data! as protobufMsgType.CompeteForLandLordRole_C2S).score;
+        const _seatNumber = (data! as protobufMsgType.CompeteForLandLordRole_C2S).seatNumber;
         this.broadMsg("Player " + _seatNumber + " called " + _score + " score.");
         this.calledCompeteLordScoreArr.push(_score);
 
@@ -219,71 +249,71 @@ class GameServer {
             this.lordRoleSeat = _seatNumber;
             this.lordRolePlayerID = playerID;
         }
-        let _hasCompeteForLordRoleCompleted = this.calledCompeteLordScoreArr.length == this.playerCount || _score == 3;
+        const _hasCompeteForLordRoleCompleted = this.calledCompeteLordScoreArr.length == this.playerCount || _score == 3;
         if (_hasCompeteForLordRoleCompleted) {
             console.log("_hasCompeteForLordRoleCompleted>",_hasCompeteForLordRoleCompleted);
             this.broadMsg("Land lord player's seat number is " + this.lordRoleSeat);
             this.dealCards_S2C();
-            this.send(this.lordRolePlayerID, card_game_pb.Cmd.PLAYTURN_S2C, { seatNumber: this.lordRoleSeat, handCards: this.playerCardsDic[this.lordRoleSeat] });
+            if (this.lordRolePlayerID) this.send(this.lordRolePlayerID, protoMsgCmd.PLAYTURN_S2C, { seatNumber: this.lordRoleSeat, handCards: this.playerCardsDic[this.lordRoleSeat] });
         } else {
             console.log("call next player to compete lord");
-            let _nextTurnSeat = this.getNextPlayerSeatNumber(_seatNumber);
-            let _nextPlayerID = this.getPlayerIDBySeatNumber(_nextTurnSeat);
-            this.send(_nextPlayerID, card_game_pb.Cmd.COMPETEFORLANDLORDROLE_S2C, { seatNumber: this.lordRoleSeat, curMaxScore: this.maxCalledLordScore });
+            const _nextTurnSeat = this.getNextPlayerSeatNumber(_seatNumber);
+            const _nextPlayerID = this.getPlayerIDBySeatNumber(_nextTurnSeat);
+            if (_nextPlayerID) this.send(_nextPlayerID, protoMsgCmd.COMPETEFORLANDLORDROLE_S2C, { seatNumber: this.lordRoleSeat, curMaxScore: this.maxCalledLordScore });
         }
     }
 
-    playCards_C2S(playerID, data) {
-        this.checkIsTrickEnd(data.seatNumber);
-        let _cardsNumberArr = data.cards;
-        let _seatNumber = data.seatNumber;
+    playCards_C2S(playerID: number, data: object|null) {
+        this.checkIsTrickEnd((data! as protobufMsgType.PlayCards_C2S).seatNumber);
+        const _cardsNumberArr = (data! as protobufMsgType.PlayCards_C2S).cards;
+        const _seatNumber = (data! as protobufMsgType.PlayCards_C2S).seatNumber;
         let _canPlay = false;
         if (_cardsNumberArr.length == 0) { //pass
             _canPlay = true;
             this.playCards_S2C({ cards: [], seatNumber: _seatNumber });
-            preCardsArr = [];
-            preCardsType = -1;
-            prePlayerSeat = _seatNumber;
+            this.preCardsArr = [];
+            this.preCardsType = -1;
+            this.prePlayerSeat = _seatNumber;
         } else {
             if (!this.checkHasCards(_cardsNumberArr, _seatNumber)) {
                 console.log("no cards to play");
-                this.send(playerID, card_game_pb.Cmd.ILLEGALCARDS_S2C, {});
+                this.send(playerID, protoMsgCmd.ILLEGALCARDS_S2C, {});
                 return;
             }
             let _curCardsType = -1;
-            if (preCardsType === -1) {
-                let _res = Object.keys(RuleChecker.CheckCardType(_cardsNumberArr, -1));
+            if (this.preCardsType === -1) {
+                const _res = Object.keys(RuleChecker.CheckCardType(_cardsNumberArr, -1));
                 if (_res.length != 0) {
                     _curCardsType = ~~_res[0];
                     _canPlay = true;
                 }
             } else {
-                let _res = RuleChecker.CheckCard(_cardsNumberArr, preCardsArr, preCardsType);
+                const _res = RuleChecker.CheckCard(_cardsNumberArr, this.preCardsArr, this.preCardsType);
                 if (_res['isOK']) {
                     _curCardsType = ~~_res.cardsType[0];
                     _canPlay = true;
                 }
             }
             if (_canPlay) {
-                preCardsArr = _cardsNumberArr;
-                preCardsType = _curCardsType;
-                prePlayerSeat = _seatNumber;
-                this.playCards_S2C({ cards: preCardsArr, seatNumber: _seatNumber });
+                this.preCardsArr = _cardsNumberArr;
+                this.preCardsType = _curCardsType;
+                this.prePlayerSeat = _seatNumber;
+                this.playCards_S2C({ cards: this.preCardsArr, seatNumber: _seatNumber });
             } else {
                 console.log("Illegal cards");
-                this.send(playerID, card_game_pb.Cmd.ILLEGALCARDS_S2C, {});
+                this.send(playerID, protoMsgCmd.ILLEGALCARDS_S2C, {});
             }
         }
         if (_canPlay && this.playerCardsDic[_seatNumber].length != 0) setTimeout(() => {
-            let _nextTurnSeatNumber = this.getNextPlayerSeatNumber(_seatNumber);
-            let _nextTurnPlayerID = this.getPlayerIDBySeatNumber(_nextTurnSeatNumber);
-            this.send(_nextTurnPlayerID, card_game_pb.Cmd.PLAYTURN_S2C, { seatNumber: _nextTurnSeatNumber, handCards: this.playerCardsDic[_nextTurnSeatNumber] });
+            const _nextTurnSeatNumber = this.getNextPlayerSeatNumber(_seatNumber);
+            const _nextTurnPlayerID = this.getPlayerIDBySeatNumber(_nextTurnSeatNumber);
+            if (_nextTurnPlayerID) this.send(_nextTurnPlayerID, protoMsgCmd.PLAYTURN_S2C, { seatNumber: _nextTurnSeatNumber, handCards: this.playerCardsDic[_nextTurnSeatNumber] });
         }, 500);
     }
 
-    playCards_S2C(data) {
-        this.removePlayerCards(data.cards, data.seatNumber);
-        this.broadcast(card_game_pb.Cmd.PLAYCARDS_S2C, data);
+    playCards_S2C(data: object|null) {
+        this.removePlayerCards((data! as protobufMsgType.PlayCards_S2C).cards, (data! as protobufMsgType.PlayCards_S2C).seatNumber);
+        this.broadcast(protoMsgCmd.PLAYCARDS_S2C, data);
     }
 
     checkIsTrickEnd(seat: number): void {
@@ -294,26 +324,26 @@ class GameServer {
         }
     }
 
-    removePlayerCards(playedCards: any[], seatNumber: number): any[] {
-        let _handCardsArr = this.playerCardsDic[seatNumber];
+    removePlayerCards(playedCards: number[], seatNumber: number): number[] {
+        const _handCardsArr = this.playerCardsDic[seatNumber];
         for (let i = 0; i < playedCards.length; i++) {
-            let item = playedCards[i];
-            let _idx = _handCardsArr.indexOf(item);
+            const item = playedCards[i];
+            const _idx = _handCardsArr.indexOf(item);
             _handCardsArr.splice(_idx, 1);
         }
         if (_handCardsArr.length === 0) {
-            this.broadcast(card_game_pb.Cmd.GAMEEND_S2C, { seatNumber: seatNumber });
+            this.broadcast(protoMsgCmd.GAMEEND_S2C, { seatNumber: seatNumber });
             this.resetGameRoundData();
         }
         return _handCardsArr;
     }
 
-    checkHasCards(cardsNumberArr: any[], seatNumber: number): boolean {
-        let _handCardsArr = this.playerCardsDic[seatNumber].slice();
+    checkHasCards(cardsNumberArr: number[], seatNumber: number): boolean {
+        const _handCardsArr = this.playerCardsDic[seatNumber].slice();
         let _res = true;
         for (let i = 0; i < cardsNumberArr.length; i++) {
-            let item = cardsNumberArr[i];
-            let _idx = _handCardsArr.indexOf(item);
+            const item = cardsNumberArr[i];
+            const _idx = _handCardsArr.indexOf(item);
             if (_idx != -1) {
                 _handCardsArr.splice(_idx, 1);
             } else {
@@ -345,11 +375,11 @@ class GameServer {
     }
 
     generatePlayerIDAndSeatNumber(): { id: number, seat: number } {
-        let _seat = this.playerIDArr.length;
-        let _id = Math.floor(Math.random() * 10000);
-        let _isExist = this.playerIDArr.indexOf(_id) != -1;
+        const _seat = this.playerIDArr.length;
+        const _id = Math.floor(Math.random() * 10000);
+        const _isExist = this.playerIDArr.indexOf(_id) != -1;
         if (_isExist) {
-            return this.getPlayerID();
+            return this.generatePlayerIDAndSeatNumber();
         } else {
             this.playerIDArr.push(_id);
         }
@@ -357,38 +387,42 @@ class GameServer {
     }
 
     roundStart(): void {
-        let _keyArr = Object.keys(this.socketDic);
+        const _keyArr = Object.keys(this.socketDic);
         for (let i = 0; i < _keyArr.length; i++) {
-            let _socket = this.socketDic[_keyArr[i]];
-            let _playerID = _socket.id;
-            let _seatNumber = _socket.seat;
-            let _data = { "playerID": _playerID, "seatNumber": _seatNumber };
-            this.send(_playerID, card_game_pb.Cmd.GAMESTART_S2C, _data);
+            const _socket = this.socketDic[+_keyArr[i]];
+            //@ts-ignore:
+            const _playerID = _socket.id;
+            //@ts-ignore:
+            const _seatNumber = _socket.seat;
+            const _data = { "playerId": _playerID, "seatNumber": _seatNumber };
+            this.send(_playerID, protoMsgCmd.GAMESTART_S2C, _data);
         }
     }
 
     getPlayerIDBySeatNumber(seatNumber: number): number | null {
-        let _keyArr = Object.keys(this.socketDic);
+        const _keyArr = Object.keys(this.socketDic);
         for (let i = 0; i < _keyArr.length; i++) {
-            let _socket = this.socketDic[_keyArr[i]];
-            let _seatNumber = _socket.seat;
+            const _socket = this.socketDic[+_keyArr[i]];
+            //@ts-ignore:
+            const _seatNumber = _socket.seat;
+            //@ts-ignore:
             if (seatNumber == _seatNumber) return _socket.id;
         }
         return null;
     }
 
     broadMsg(msgStr: string): void {
-        this.broadcast(card_game_pb.Cmd.BROADCAST_MSG_S2C, { "msg": msgStr });
+        this.broadcast(protoMsgCmd.BROADCAST_MSG_S2C, { "msg": msgStr });
     }
 
     getInputFromCmd(tips: string): string {
         return readline.gets(tips);
     }
 
-    shuffleArray(input: any[]): any[] {
+    shuffleArray(input: number[]): number[] {
         for (let i = input.length - 1; i >= 0; i--) {
-            let randomIndex = Math.floor(Math.random() * (i + 1));
-            let itemAtIndex = input[randomIndex];
+            const randomIndex = Math.floor(Math.random() * (i + 1));
+            const itemAtIndex = input[randomIndex];
             input[randomIndex] = input[i];
             input[i] = itemAtIndex;
         }

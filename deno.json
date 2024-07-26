@@ -3,7 +3,8 @@
     "lib": ["deno.ns", "deno.window"]
   },
   "tasks": {
-    "start": "deno run --allow-net server/index.ts",
+    "serve": "deno run --allow-net server/index.ts",
+    "start": "deno run --allow-net client/index.ts ",
     "pb-gen": "pb gen ts --entry-path='./share/proto' --out-dir='./share/proto/out'"
   }
 }

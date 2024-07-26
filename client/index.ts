@@ -1,10 +1,11 @@
 import { readline } from "https://deno.land/x/readline_sync@0.0.2/mod.ts";
 import { WebSocketClient, StandardWebSocketClient } from "https://deno.land/x/websocket@v0.1.4/mod.ts";
+import "jsr:@std/dotenv/load"
 import { convert2ReadableNames, convert2CardNumbers, cardNameNumberDic } from '../share/helper.ts';
 
 import { messages as protobufMsgType } from "../share/proto/out/index.ts";
 import { name2num as protoMsgCmd } from "../share/proto/out/messages/Cmd.ts";
-import { num2name as protoMsgName } from "../share/proto/out/messages/Cmd.ts";
+// import { num2name as protoMsgName } from "../share/proto/out/messages/Cmd.ts";
 
 import * as MainMessage from "../share/proto/out/messages/MainMessage.ts";
 import * as DealCards_S2C from "../share/proto/out/messages/DealCards_S2C.ts";
@@ -31,35 +32,34 @@ class GameClient{
     }
 
     private joinServer() {
-        const _ip_port = "127.0.0.1:8080";
+
+        let _serverHost:string; 
+        if(Deno.env.get('SHOULD_CUSTOM_HOST')){
+            _serverHost = readline.gets('input server host: ')
+        }else{
+            _serverHost = "127.0.0.1:8080";
+        }
         const _ip_port_reg = /^(\d|[1-9]\d|1\d{2}|2[0-4]\d|25[0-5])\.(\d|[1-9]\d|1\d{2}|2[0-4]\d|25[0-5])\.(\d|[1-9]\d|1\d{2}|2[0-4]\d|25[0-5])\.(\d|[1-9]\d|1\d{2}|2[0-4]\d|25[0-5]):([0-9]|[1-9]\d|[1-9]\d{2}|[1-9]\d{3}|[1-5]\d{4}|6[0-4]\d{3}|65[0-4]\d{2}|655[0-2]\d|6553[0-5])$/;
-        if (!_ip_port_reg.test(_ip_port)) {
+
+        if (!_ip_port_reg.test(_serverHost)) {
             console.log("Wrong format, please input again.")
             this.joinServer();
         } else {
-            const _splited = _ip_port.split(":");
+            const _splited = _serverHost.split(":");
             this.ip = _splited[0];
             this.port = +_splited[1];
         }
-        const endpoint = 'ws://'+this.ip+":"+this.port;
+
+        const endpoint = 'ws://'+this.ip+':'+this.port;
         this.mSocket = new StandardWebSocketClient(endpoint);
-        this.mSocket.on("open",()=>{
+        this.mSocket.on('open',()=>{
             this.startGame();
         })
 
         this.mSocket.on('message', async(buffer) => {
             if (buffer.data instanceof Blob) {
-                // const reader = new FileReader();
-                // reader.onload = () => {
-                //     const arrayBuffer = reader.result as Uint8Array;
-                //     this.decodeData(arrayBuffer);
-                // };
-                // reader.onerror = (err) => {
-                    //     console.error("Failed to read blob:", err);
-                    // };
-                    // reader.readAsArrayBuffer(buffer.data);
-                    const arrayBuffer = await buffer.data.arrayBuffer()
-                    this.decodeData(new Uint8Array(arrayBuffer));
+                const arrayBuffer = await buffer.data.arrayBuffer()
+                this.decodeData(new Uint8Array(arrayBuffer));
             } else {
                 console.error("Expected Blob, received:", buffer.data);
             }
@@ -75,7 +75,6 @@ class GameClient{
         if (_dataBuffer) this.mSocket!.send(_dataBuffer);
     }
     
-
     private encodeData(data:{cmd:number,body:object|null}) {
         const _cmd = data.cmd;
         const _dataBody = data.body;

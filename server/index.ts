@@ -74,7 +74,7 @@ class GameServer {
         if (_playerCount === 2 || _playerCount === 3) {
             this.playerCount = _playerCount;
         } else {
-            console.log("Wrong input, please input again.");
+            console.log("Invalid input. Please try again.");
             this.selectPlayerCount();
         }
     }
@@ -241,7 +241,7 @@ class GameServer {
         console.log("competeForLandLordRole_C2S>",data);
         const _score = (data! as protobufMsgType.CompeteForLandLordRole_C2S).score;
         const _seatNumber = (data! as protobufMsgType.CompeteForLandLordRole_C2S).seatNumber;
-        this.broadMsg("Player " + _seatNumber + " called " + _score + " score.");
+        this.broadMsg("Player " + _seatNumber + " has called " + _score + " points.");
         this.calledCompeteLordScoreArr.push(_score);
 
         if (_score > this.maxCalledLordScore) {
@@ -252,11 +252,11 @@ class GameServer {
         const _hasCompeteForLordRoleCompleted = this.calledCompeteLordScoreArr.length == this.playerCount || _score == 3;
         if (_hasCompeteForLordRoleCompleted) {
             console.log("_hasCompeteForLordRoleCompleted>",_hasCompeteForLordRoleCompleted);
-            this.broadMsg("Land lord player's seat number is " + this.lordRoleSeat);
+            this.broadMsg("The seat number of the land lord player is " + this.lordRoleSeat);
             this.dealCards_S2C();
             if (this.lordRolePlayerID) this.send(this.lordRolePlayerID, protoMsgCmd.PLAYTURN_S2C, { seatNumber: this.lordRoleSeat, handCards: this.playerCardsDic[this.lordRoleSeat] });
         } else {
-            console.log("call next player to compete lord");
+            console.log("Next player's turn to bid for the landlord role");
             const _nextTurnSeat = this.getNextPlayerSeatNumber(_seatNumber);
             const _nextPlayerID = this.getPlayerIDBySeatNumber(_nextTurnSeat);
             if (_nextPlayerID) this.send(_nextPlayerID, protoMsgCmd.COMPETEFORLANDLORDROLE_S2C, { seatNumber: this.lordRoleSeat, curMaxScore: this.maxCalledLordScore });
@@ -300,7 +300,7 @@ class GameServer {
                 this.prePlayerSeat = _seatNumber;
                 this.playCards_S2C({ cards: this.preCardsArr, seatNumber: _seatNumber });
             } else {
-                console.log("Illegal cards");
+                console.log("Invalid cards");
                 this.send(playerID, protoMsgCmd.ILLEGALCARDS_S2C, {});
             }
         }

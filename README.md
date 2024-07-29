@@ -3,7 +3,7 @@
 > run `deno task serve` for server
 > run `deno task start` to start client
 
-## custom host
+## Custom host
 >Configure the SHOULD_CUSTOM_HOST setting in the .env file to customize your server host. The default value is false, which means the server will run locally on port 8080.
 
 ## [Deno compile](https://docs.deno.com/runtime/manual/tools/compiler/) for standalone executables

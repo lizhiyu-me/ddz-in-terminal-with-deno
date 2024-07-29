@@ -34,15 +34,15 @@ class GameClient{
     private joinServer() {
 
         let _serverHost:string; 
-        if(Deno.env.get('SHOULD_CUSTOM_HOST')){
-            _serverHost = readline.gets('input server host: ')
+        if(Deno.env.get('SHOULD_CUSTOM_HOST') === 'true'){
+            _serverHost = readline.gets('Input server host: ')
         }else{
             _serverHost = "127.0.0.1:8080";
         }
         const _ip_port_reg = /^(\d|[1-9]\d|1\d{2}|2[0-4]\d|25[0-5])\.(\d|[1-9]\d|1\d{2}|2[0-4]\d|25[0-5])\.(\d|[1-9]\d|1\d{2}|2[0-4]\d|25[0-5])\.(\d|[1-9]\d|1\d{2}|2[0-4]\d|25[0-5]):([0-9]|[1-9]\d|[1-9]\d{2}|[1-9]\d{3}|[1-5]\d{4}|6[0-4]\d{3}|65[0-4]\d{2}|655[0-2]\d|6553[0-5])$/;
 
         if (!_ip_port_reg.test(_serverHost)) {
-            console.log("Wrong format, please input again.")
+            console.warn("Wrong format, please input again.")
             this.joinServer();
         } else {
             const _splited = _serverHost.split(":");
@@ -104,7 +104,7 @@ class GameClient{
                 _data = BroadCastMsg_S2C.encodeBinary(_proto_struct_obj);
                 break;
             default:
-                console.log("no message matched.");
+                console.warn("no message matched.");
                 break;
         }
         if (_data) {
@@ -250,27 +250,27 @@ class GameClient{
         const _cards = data.cards;
         this.mCardsArr = this.sortByValue(_cards);
         const _myHandCardsShowArr = convert2ReadableNames(this.mCardsArr);
-        console.log('Deal cards complete, your seat number is-> ', data.seatNumber, 'your cards->', _myHandCardsShowArr.join(','));
+        console.log(`You've been dealt cards. Your seat number is ${data.seatNumber} and your hand is ${_myHandCardsShowArr.join(',')}.`);
     }
 
     competeForLandLordRole_S2C(data:{curMaxScore:number}): void {
         const _curMaxScore = data.curMaxScore;
         const _scoreCanBeSelectedStr = "123".slice(_curMaxScore).split("").join("|");
-        console.log(`Select a score to confirm role (you can input ${_scoreCanBeSelectedStr}, the one who select the biggest number will be the land lord, and the base score is the selected number.): `);
+        console.log(`Please enter a score to bid for the landlord role. You can choose from ${_scoreCanBeSelectedStr}. The highest bidder will become the landlord, and the base score will be set to the winning bid.`);
         const _score = this.getInputFromCmd();
         this.competeForLandLordRole_C2S(+_score);
     }
 
     playCards_C2S(): void {
-        console.log('Now, your turn.');
-        console.log('Your cards->', convert2ReadableNames(this.mCardsArr).join(','));
-        console.log('Please input your cards to play (join with ",", e.g."A,A,A,6", press "Enter" to confirm your input, input nothing to pass this turn):');
+        console.log('Your turn now.');
+        console.log('Your hand:', convert2ReadableNames(this.mCardsArr).join(','));
+        console.log('Enter the cards you want to play, separated by commas (e.g., "A,A,A,6"). Press Enter to confirm, or enter nothing to pass.');
         const _inputContent = this.getInputFromCmd();
         if (_inputContent == "" || this.checkIsCardsLegal(_inputContent)) {
             const _cardsNumberArr = _inputContent == "" ? [] : convert2CardNumbers(_inputContent.split(","));
             this.send({ cmd: protoMsgCmd.PLAYCARDS_C2S, body: { cards: _cardsNumberArr, seatNumber: this.seatNumber } });
         } else {
-            console.log("Illegal cards, please select your cards again.")
+            console.log("Invalid cards, please choose again.")
             if (this.seatNumber != null){
                 this.playTurn({ seatNumber: this.seatNumber });
             }
@@ -281,31 +281,31 @@ class GameClient{
         const _cardsPlayed = data.cards;
         const _seatNumber = data.seatNumber;
         if (_cardsPlayed.length == 0) {
-            console.log(`Player ${_seatNumber}-> passed.`)
+            console.log(`Player ${_seatNumber} passed.`)
         } else {
-            console.log(`Player ${_seatNumber}-> played ${convert2ReadableNames(_cardsPlayed).join(",")}.`);
+            console.log(`Player ${_seatNumber} played ${convert2ReadableNames(_cardsPlayed).join(",")}.`);
         }
     }
 
     illegalCards_S2C(): void {
-        console.log("Illegal Cards.");
+        console.log("You've played invalid cards.");
         if(this.seatNumber != null) this.playTurn({ seatNumber: this.seatNumber });
     }
 
     gameEnd_S2C(data:protobufMsgType.GameEnd_S2C): void {
         const _winnerSeatNumber = data.seatNumber;
         const _isWin = _winnerSeatNumber === this.seatNumber;
-        const _content = _isWin ? "Congratulations, you win!" : "Oh, you lose.";
+        const _content = _isWin ? "Congratulations, you have won!" : "Oh, you have lost.";
         console.log(_content);
         this.resetWhenGameEnd();
 
-        console.log("Press Enter to restart.")
+        console.log("Hit Enter to restart.")
         this.getInputFromCmd();
         this.startGame();
     }
 
      competeForLandLordRole_C2S(score:number): void {
-         console.log(`You has called ${score} score`);
+         console.log(`You have bid ${score} points`);
          this.send({ cmd: protoMsgCmd.COMPETEFORLANDLORDROLE_C2S, body: { score: score, seatNumber: this.seatNumber } });
     }
            

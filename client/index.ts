@@ -1,11 +1,9 @@
-import { readline } from "https://deno.land/x/readline_sync@0.0.2/mod.ts";
 import { WebSocketClient, StandardWebSocketClient } from "https://deno.land/x/websocket@v0.1.4/mod.ts";
 import "jsr:@std/dotenv/load"
 import { convert2ReadableNames, convert2CardNumbers, cardNameNumberDic } from '../share/helper.ts';
 
 import { messages as protobufMsgType } from "../share/proto/out/index.ts";
 import { name2num as protoMsgCmd } from "../share/proto/out/messages/Cmd.ts";
-// import { num2name as protoMsgName } from "../share/proto/out/messages/Cmd.ts";
 
 import * as MainMessage from "../share/proto/out/messages/MainMessage.ts";
 import * as DealCards_S2C from "../share/proto/out/messages/DealCards_S2C.ts";
@@ -33,9 +31,14 @@ class GameClient{
 
     private joinServer() {
 
-        let _serverHost:string; 
+        let _serverHost:string | null; 
         if(Deno.env.get('SHOULD_CUSTOM_HOST') === 'true'){
-            _serverHost = readline.gets('Input server host: ')
+            do {
+                _serverHost = prompt('Input server host: ');
+                if (!_serverHost) {
+                    console.error("Server host is required.");
+                }
+            } while (!_serverHost);
         }else{
             _serverHost = "127.0.0.1:8080";
         }
@@ -204,7 +207,10 @@ class GameClient{
     }
 
     getInputFromCmd(): string {
-        return readline.gets('');
+        do {
+            const _input = prompt('');
+            if (_input) return _input;
+        } while (true);
     }
 
     getCardValue(cardSerialNumber: number): number {
